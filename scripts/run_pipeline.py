@@ -50,13 +50,13 @@ def main(args):
         mlflow.log_param("test_size", args.test_size)   # Train/test split ratio
 
         # === STAGE 1: Data Loading & Validation ===
-        print("🔄 Loading data...")
+        print("Loading data...")
         df = load_data(args.input)  # Load raw CSV data with error handling
-        print(f"✅ Data loaded: {df.shape[0]} rows, {df.shape[1]} columns")
+        print(f"Data loaded: {df.shape[0]} rows, {df.shape[1]} columns")
 
         # === CRITICAL: Data Quality Validation ===
         # This step is ESSENTIAL for production ML - validates data quality before training
-        print("🔍 Validating data quality with Great Expectations...")
+        print("Validating data quality with Great Expectations...")
         is_valid, failed = validate_telco_data(df)
         mlflow.log_metric("data_quality_pass", int(is_valid))  # Track data quality over time
 
@@ -64,7 +64,7 @@ def main(args):
             # Log validation failures for debugging
             import json
             mlflow.log_text(json.dumps(failed, indent=2), artifact_file="failed_expectations.json")
-            raise ValueError(f"❌ Data quality check failed. Issues: {failed}")
+            raise ValueError(f"Data quality check failed. Issues: {failed}")
         else:
             print("✅ Data validation passed. Logged to MLflow.")
 
@@ -76,7 +76,7 @@ def main(args):
         processed_path = os.path.join(project_root, "data", "processed", "telco_churn_processed.csv")
         os.makedirs(os.path.dirname(processed_path), exist_ok=True)
         df.to_csv(processed_path, index=False)
-        print(f"✅ Processed dataset saved to {processed_path} | Shape: {df.shape}")
+        print(f"Processed dataset saved to {processed_path} | Shape: {df.shape}")
 
         # === STAGE 3: Feature Engineering - CRITICAL for Model Performance ===
         print("🛠️  Building features...")
@@ -90,7 +90,7 @@ def main(args):
         # IMPORTANT: Convert boolean columns to integers for XGBoost compatibility
         for c in df_enc.select_dtypes(include=["bool"]).columns:
             df_enc[c] = df_enc[c].astype(int)
-        print(f"✅ Feature engineering completed: {df_enc.shape[1]} features")
+        print(f"Feature engineering completed: {df_enc.shape[1]} features")
 
         # === CRITICAL: Save Feature Metadata for Serving Consistency ===
         # This ensures serving pipeline uses exact same features in exact same order
@@ -116,10 +116,10 @@ def main(args):
         }
         joblib.dump(preprocessing_artifact, os.path.join(artifacts_dir, "preprocessing.pkl"))
         mlflow.log_artifact(os.path.join(artifacts_dir, "preprocessing.pkl"))
-        print(f"✅ Saved {len(feature_cols)} feature columns for serving consistency")
+        print(f"Saved {len(feature_cols)} feature columns for serving consistency")
 
         # === STAGE 4: Train/Test Split ===
-        print("📊 Splitting data...")
+        print("Splitting data...")
         X = df_enc.drop(columns=[target])  # Feature matrix
         y = df_enc[target]                 # Target vector
         
@@ -130,16 +130,16 @@ def main(args):
             stratify=y,                  # Maintain class balance
             random_state=42              # Reproducible splits
         )
-        print(f"✅ Train: {X_train.shape[0]} samples | Test: {X_test.shape[0]} samples")
+        print(f"Train: {X_train.shape[0]} samples | Test: {X_test.shape[0]} samples")
 
         # === CRITICAL: Handle Class Imbalance ===
         # Calculate scale_pos_weight to handle imbalanced dataset
         # This tells XGBoost to give more weight to the minority class (churners)
         scale_pos_weight = (y_train == 0).sum() / (y_train == 1).sum()
-        print(f"📈 Class imbalance ratio: {scale_pos_weight:.2f} (applied to positive class)")
+        print(f"Class imbalance ratio: {scale_pos_weight:.2f} (applied to positive class)")
 
         # === STAGE 5: Model Training with Optimized Hyperparameters ===
-        print("🤖 Training XGBoost model...")
+        print("Training XGBoost model...")
         
         # IMPORTANT: These hyperparameters were optimized through hyperparameter tuning
         # In production, consider using hyperparameter optimization tools like Optuna
@@ -167,10 +167,10 @@ def main(args):
         model.fit(X_train, y_train)
         train_time = time.time() - t0
         mlflow.log_metric("train_time", train_time)  # Track training performance
-        print(f"✅ Model trained in {train_time:.2f} seconds")
+        print(f" Model trained in {train_time:.2f} seconds")
 
         # === STAGE 6: Model Evaluation ===
-        print("📊 Evaluating model performance...")
+        print("Evaluating model performance...")
         
         # Generate predictions and track inference time
         t1 = time.time()
